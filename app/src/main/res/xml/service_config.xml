@@ -1,0 +1,15 @@
+<accessibility-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/des"
+    android:notificationTimeout="100"
+    android:settingsActivity="com.example.android.accessibility.ServiceSettingsActivity"/>
+    <!--android:accessibilityFeedbackType="feedbackSpoken"-->
+    <!--android:packageNames="com.sec.android.app.clockpackage"-->
+    <!--android:accessibilityEventTypes="typeAllMask"-->
+    <!--android:packageNames="com.android.deskclock.alarms"-->
+
+    <!--android:packageNames="com.example.android.apis"-->
