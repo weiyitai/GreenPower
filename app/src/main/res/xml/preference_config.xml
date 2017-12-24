@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <Preference
+        android:key="sp_key_service_status"
+        android:summary="已开启"
+        android:title="当前服务"/>
+
+    <EditTextPreference
+        android:defaultValue="07:20"
+        android:inputType="datetime"
+        android:key="sp_key_clock_alarm"
+        android:summary="07:20"
+        android:title="闹钟时间,24小时制(必需使用 HH:mm 的格式)"/>
+
+    <EditTextPreference
+        android:defaultValue="07:22"
+        android:inputType="datetime"
+        android:key="sp_key_power_generate_time"
+        android:summary="07:22"
+        android:title="绿色能量产生时间(格式同上)"/>
+
+    <EditTextPreference
+        android:inputType="textPassword"
+        android:key="sp_key_unlock_password"
+        android:maxLength="15"
+        android:summary="*******"
+        android:title="解锁密码,最长15位"/>
+
+    <SwitchPreference
+        android:key="sp_key_switch_wifi"
+        android:summary="若要打开Wifi,安卓6.0后会弹窗询问是否打开"
+        android:title="解锁屏幕后是否自动打开Wifi开关"/>
+
+    <SwitchPreference
+        android:key="sp_key_switch_mobile_network"
+       android:summary="只适用安卓6.0以前"
+        android:title="解锁屏幕后是否自动打开网络流量开关"/>
+
+    <Preference
+        android:key="sp_key_about"
+        android:summary="@string/summary_about"
+        android:title="关于自动收取绿色能量"/>
+
+</PreferenceScreen>
