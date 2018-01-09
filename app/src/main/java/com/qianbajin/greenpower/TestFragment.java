@@ -18,7 +18,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 /**
  * @author wWX407408
@@ -50,6 +52,7 @@ public class TestFragment extends Fragment {
                 mProHandler.sendEmptyMessage(1);
             }
         });
+        Log.d(TAG, DateFormat.getDateTimeInstance().format(new Date(1515340800235L)));
 
     }
 

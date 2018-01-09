@@ -30,6 +30,8 @@ import java.io.DataOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.DateFormat;
+import java.util.Date;
 
 import dalvik.system.PathClassLoader;
 
@@ -144,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.d(TAG, DateFormat.getDateTimeInstance().format(new Date(1515340800235L)));
 
 //        PrettyFormatStrategy strategy = PrettyFormatStrategy.newBuilder()
 //                .tag(BuildConfig.APPLICATION_ID)
@@ -176,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         mReceive = new ClockReceive();
         registerReceiver(mReceive, intentFilter);
 
-        startActivity(new Intent(this, SettingActivity.class));
+        SettingActivity.show(this, 1);
 //
 //        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.MODIFY_PHONE_STATE);
 //        if (permission != PackageManager.PERMISSION_GRANTED) {

@@ -14,11 +14,11 @@
         android:title="闹钟时间,24小时制(必需使用 HH:mm 的格式)"/>
 
     <EditTextPreference
-        android:defaultValue="07:22"
-        android:inputType="datetime"
+        android:defaultValue="60"
+        android:inputType="number"
         android:key="sp_key_power_generate_time"
-        android:summary="07:22"
-        android:title="绿色能量产生时间(格式同上)"/>
+        android:summary="60"
+        android:title="闹钟响后多少秒收取能量（时间单位为秒）"/>
 
     <EditTextPreference
         android:inputType="textPassword"
@@ -28,14 +28,45 @@
         android:title="解锁密码,最长15位"/>
 
     <SwitchPreference
+        android:defaultValue="false"
         android:key="sp_key_switch_wifi"
-        android:summary="若要打开Wifi,安卓6.0后会弹窗询问是否打开"
-        android:title="解锁屏幕后是否自动打开Wifi开关"/>
+        android:summary="若wifi处于关闭状态则打开"
+        android:title="是否自动打开Wifi开关"/>
+
+    <EditTextPreference
+        android:defaultValue="140,300"
+        android:key="sp_key_wifi_location"
+        android:summary="140,300"
+        android:title="wifi开关坐标"/>
 
     <SwitchPreference
+        android:defaultValue="false"
         android:key="sp_key_switch_mobile_network"
-       android:summary="只适用安卓6.0以前"
-        android:title="解锁屏幕后是否自动打开网络流量开关"/>
+        android:summary="若手机网络开关处于关闭状态则打开"
+        android:title="是否自动打开网络流量开关"/>
+
+    <EditTextPreference
+        android:defaultValue="720,300"
+        android:key="sp_key_mobile_location"
+        android:summary="720,300"
+        android:title="移动网络开关坐标"/>
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="sp_key_turn_off_network"
+        android:title="收取能量结束后关闭网络"/>
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="sp_key_kill_alipay"
+        android:title="退出支付宝后杀死支付宝进程"/>
+
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="sp_key_debug_mode"
+        android:summary="进入蚂蚁森林页面后只做停留（几秒钟），
+        不实际点击进行收取能量,用于调试用途，看能不能正常进入蚂蚁森林页面"
+        android:title="调试模式"/>
 
     <Preference
         android:key="sp_key_about"

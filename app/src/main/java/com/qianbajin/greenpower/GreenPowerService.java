@@ -1,6 +1,7 @@
 package com.qianbajin.greenpower;
 
 import android.accessibilityservice.AccessibilityService;
+import android.app.ActivityManager;
 import android.app.Instrumentation;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -98,22 +99,26 @@ public class GreenPowerService extends AccessibilityService {
      * 使能接收网络变化通知
      */
     private static boolean enableReceiveNetwork;
-    private Handler mUiHandler;
-    private Handler mProHandler;
+    private final Handler mUiHandler = new UiHandler(Looper.getMainLooper());
+    ;
+    private final Handler mProHandler;
     private ClockReceiver mClockReceiver;
     private NetWorkReceiver mNetWorkReceiver;
     private SharedPreferences mSp;
 
-    @Override
-    protected void onServiceConnected() {
-        super.onServiceConnected();
-        Log.d(TAG, "onServiceConnected");
+    public GreenPowerService() {
+        Log.d(TAG, "GreenPowerService:");
 
         // 处理子线程
         HandlerThread handlerThread = new HandlerThread("ProHandler");
         handlerThread.start();
         mProHandler = new ProHandler(handlerThread.getLooper());
-        mUiHandler = new UiHandler(Looper.getMainLooper());
+    }
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        Log.d(TAG, "onServiceConnected");
 
         registerClockReceiver();
     }
@@ -143,19 +148,18 @@ public class GreenPowerService extends AccessibilityService {
         if (mClockReceiver != null) {
             unregisterReceiver(mClockReceiver);
         }
-        mProHandler = null;
         return super.onUnbind(intent);
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-//        Log.d("GreenPowerService", "event:" + event);
-        AccessibilityNodeInfo source = event.getSource();
+//        Log.d(TAG, "event:" + event);
+        AccessibilityNodeInfo source;
 //        Log.d("GreenPowerService", "source:" + source);
 //        Log.d(TAG, "enableInputPwd:" + enableInputPwd);
 
         // 寻找备用密码控件
-        if (enableBackupPassword && source != null) {
+        if (enableBackupPassword && (source = event.getSource()) != null) {
             List<AccessibilityNodeInfo> infoList = source.findAccessibilityNodeInfosByText(TEXT_BACKUP_PASSWORD);
             if (infoList.isEmpty()) {
                 Log.d(TAG, "infoList.isEmpty()");
@@ -163,18 +167,16 @@ public class GreenPowerService extends AccessibilityService {
                 Log.d(TAG, "通过文字找到了'备用密码'控件**********************infoList.size():" + infoList.size());
                 AccessibilityNodeInfo nodeInfo = infoList.get(0);
                 boolean handleClick = handleClick(nodeInfo);
-                if (handleClick) {
-                    enableBackupPassword = false;
-                    enableInputPwd = true;
-                    mUiHandler.sendEmptyMessageDelayed(MSG_UI_FIND_EDITTEXT, 1000L);
-                } else {
+                if (!handleClick) {
                     for (AccessibilityNodeInfo info : infoList) {
                         boolean handleClick1 = handleClick(info);
                         Log.d(TAG, "handleClick1:" + handleClick1);
                     }
-                    mUiHandler.sendEmptyMessageDelayed(MSG_UI_FIND_EDITTEXT, 1000L);
                 }
-                Log.d(TAG, "handleClick:" + handleClick);
+                enableBackupPassword = false;
+                enableInputPwd = true;
+                mUiHandler.sendEmptyMessageDelayed(MSG_UI_FIND_EDITTEXT, 1000L);
+                Log.d(TAG, "点击了'备用密码'控件>>handleClick:" + handleClick);
             }
         }
 
@@ -213,11 +215,20 @@ public class GreenPowerService extends AccessibilityService {
 //            }
 //        }
 
-        if (enableConfirmNetWork && source != null) {
-            enableEach = true;
-            eachConfirmButton(source, TEXT_CONFIRM);
-        }
+//        if (enableConfirmNetWork && (source = event.getSource()) != null) {
+//            enableEach = true;
+//            eachConfirmButton(source, TEXT_CONFIRM);
+//        }
+    }
 
+    private void findConfirmButton() {
+        AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
+        if (rootInActiveWindow != null) {
+            enableConfirmNetWork = true;
+            eachConfirmButton(rootInActiveWindow, TEXT_CONFIRM);
+        } else {
+            Log.d(TAG, "findConfirmButton: rootInActiveWindow == null");
+        }
     }
 
     /**
@@ -236,15 +247,14 @@ public class GreenPowerService extends AccessibilityService {
                 boolean click = handleClick(nodeInfo);
                 if (click) {
                     enableConfirmNetWork = false;
-                    enableEach = false;
                 }
                 Log.d(TAG, "click:" + click);
             }
         } else {
-            for (int i = 0; enableEach && i < childCount; i++) {
+            for (int i = 0;i < childCount; i++) {
                 AccessibilityNodeInfo child = nodeInfo.getChild(i);
                 if (child != null) {
-                    if (!enableEach) {
+                    if (!enableConfirmNetWork) {
                         break;
                     }
                     eachConfirmButton(child, text);
@@ -265,7 +275,6 @@ public class GreenPowerService extends AccessibilityService {
             Log.d(TAG, className + "--nodeInfo.getText():" + nodeInfo.getText());
             if (text.equals(nodeInfo.getText()) && WIDGET_NAME_TEXTVIEW.equals(className)) {
                 Log.d(TAG, "通过遍历找到了'蚂蚁森林'控件********************");
-                enableEach = false;
                 enableAntForest = false;
                 AccessibilityNodeInfo parent = nodeInfo.getParent();
                 boolean action = handleClick(parent);
@@ -274,15 +283,17 @@ public class GreenPowerService extends AccessibilityService {
                 if (action) {
                     // 10秒后收取能量
                     enableReady = true;
-                    mProHandler.sendEmptyMessageDelayed(MSG_PRO_COLLECT_POWER, 20000L);
+                    mProHandler.sendEmptyMessageDelayed(MSG_PRO_COLLECT_POWER, 15000L);
+                } else {
+                    mUiHandler.sendEmptyMessage(MSG_UI_FIND_ENT_FOREST);
                 }
 
             }
         } else {
-            for (int i = 0; enableEach && i < childCount; i++) {
+            for (int i = 0; i < childCount; i++) {
                 AccessibilityNodeInfo child = nodeInfo.getChild(i);
                 if (child != null) {
-                    if (!enableEach) {
+                    if (!enableAntForest) {
                         break;
                     }
                     eachAntForest(child, text);
@@ -298,7 +309,6 @@ public class GreenPowerService extends AccessibilityService {
             CharSequence className = nodeInfo.getClassName();
             Log.d(TAG, className + "--nodeInfo.getText():" + nodeInfo.getText());
             if (widgetName.equals(className)) {
-                enableEach = false;
                 enableInputPwd = false;
                 Log.d(TAG, "通过遍历找到了输入控件********************");
                 String password = mSp.getString(Constant.SP_KEY_UNLOCK_PASSWORD, "");
@@ -308,21 +318,20 @@ public class GreenPowerService extends AccessibilityService {
                             AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, password);
                     boolean performAction = nodeInfo.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
                     Log.d(TAG, "输入密码操作:" + (performAction ? "成功*************" : "失败**************"));
-                    if (performAction) {
-                        mProHandler.sendMessageDelayed(Message.obtain(mProHandler, MSG_PRO_PRESS_ENTER, false), 100L);
-                    } else {
+                    if (!performAction) {
                         arguments.putCharSequence(
                                 AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, password);
-                        boolean performAction1 = nodeInfo.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
-                        Log.d(TAG, "再次输入密码操作:" + (performAction1 ? "成功*************" : "失败**************"));
+                        performAction = nodeInfo.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
+                        Log.d(TAG, "再次输入密码操作:" + (performAction ? "成功*************" : "失败**************"));
                     }
+                    mProHandler.sendMessageDelayed(Message.obtain(mProHandler, MSG_PRO_PRESS_ENTER, false), 100L);
                 }
             }
         } else {
-            for (int i = 0;i < childCount; i++) {
+            for (int i = 0; i < childCount; i++) {
                 AccessibilityNodeInfo child = nodeInfo.getChild(i);
                 if (child != null) {
-                    if (!enableEach) {
+                    if (!enableInputPwd) {
                         break;
                     }
                     eachEdittext(child, widgetName);
@@ -349,8 +358,8 @@ public class GreenPowerService extends AccessibilityService {
     public void unregisterNetworkReceiver() {
         if (mNetWorkReceiver != null) {
             unregisterReceiver(mNetWorkReceiver);
+            mNetWorkReceiver = null;
         }
-        mNetWorkReceiver = null;
     }
     /*event:EventType: TYPE_WINDOW_STATE_CHANGED; EventTime: 14847324; PackageName: com.sec.android.app.clockpackage; MovementGranularity: 0; Action: 0 [ ClassName: com.sec.android.app.clockpackage.alarm.AlarmAlert; Text: [时钟]; ContentDescription: null; ItemCount: -1; CurrentItemIndex: -1; IsEnabled: true; IsPassword: false; IsChecked: false; IsFullScreen: true; Scrollable: false; BeforeText: null; FromIndex: -1; ToIndex: -1; ScrollX: -1; ScrollY: -1; MaxScrollX: -1; MaxScrollY: -1; AddedCount: -1; RemovedCount: -1; ParcelableData: null ]; recordCount: 0*/
 
@@ -362,7 +371,7 @@ public class GreenPowerService extends AccessibilityService {
         return timeReach;
     }
 
-    class ProHandler extends Handler {
+    final class ProHandler extends Handler {
 
         public ProHandler(Looper looper) {
             super(looper);
@@ -389,10 +398,11 @@ public class GreenPowerService extends AccessibilityService {
                 case MSG_PRO_PRESS_ENTER:
                     // 停止闹钟和输入密码后须按下回车键
                     in.sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER);
-                    // 使能寻找'备用密码'控件,停止闹钟后需要,输入密码后不需要
+                    // 使能寻找'备用密码'控件,停止闹钟后需要寻找'备用密码'控件,输入密码后不需要
                     boolean enable = (boolean) msg.obj;
                     enableBackupPassword = enable;
                     if (!enable) {
+                        // 解锁完成后进入主界面
                         mUiHandler.sendEmptyMessageDelayed(MSG_UI_UNLOCK_FINISH, 2000L);
                     }
                     break;
@@ -417,20 +427,24 @@ public class GreenPowerService extends AccessibilityService {
                     }
                     // 收集绿色能量
                     Log.d(TAG, "handleMessage:开始收取绿色能量*****************");
+                    boolean debug = mSp.getBoolean(Constant.SP_KEY_DEBUG_MODE, true);
+                    if (debug) {
+                        Log.d(TAG, "handleMessage:模拟收集能量,睡眠两秒");
+                        SystemClock.sleep(8000L);
+                    } else {
 //                    float minX = 200.f, maxX = 1250.f, minY = 500.f, maxY = 1200.f, intervalX = 180.f, intervalY = 180.f;
-                    float minX = 160.f, maxX = 1280.f, minY = 500.f, maxY = 1300.f, intervalX = 160.f, intervalY = 160.f;
-                    for (float j = minY; j <= maxY; j += intervalY) {
-                        for (float i = minX; i <= maxX; i += intervalX) {
-                            long milli = SystemClock.uptimeMillis();
-                            in.sendPointerSync(MotionEvent.obtain(milli, milli, MotionEvent.ACTION_DOWN, i, j, 0));
-                            long milli3 = SystemClock.uptimeMillis();
-                            in.sendPointerSync(MotionEvent.obtain(milli3, milli3, MotionEvent.ACTION_UP, i, j, 0));
-                            Log.d(TAG, "handleMessage:i:" + i + "  j:" + j + "  milli:" + milli);
-                            SystemClock.sleep(300L);
+                        float minX = 160.f, maxX = 1280.f, minY = 500.f, maxY = 1300.f, intervalX = 160.f, intervalY = 160.f;
+                        for (float j = minY; j <= maxY; j += intervalY) {
+                            for (float i = minX; i <= maxX; i += intervalX) {
+                                long milli = SystemClock.uptimeMillis();
+                                in.sendPointerSync(MotionEvent.obtain(milli, milli, MotionEvent.ACTION_DOWN, i, j, 0));
+                                long milli3 = SystemClock.uptimeMillis();
+                                in.sendPointerSync(MotionEvent.obtain(milli3, milli3, MotionEvent.ACTION_UP, i, j, 0));
+                                Log.d(TAG, "handleMessage:i:" + i + "  j:" + j + "  milli:" + milli);
+                                SystemClock.sleep(300L);
+                            }
                         }
                     }
-//                    Log.d(TAG, "handleMessage:模拟收集能量,睡眠两秒");
-//                    SystemClock.sleep(8000L);
                     Log.d(TAG, "handleMessage:收集绿色能量结束*******************");
                     mProHandler.sendEmptyMessageDelayed(MSG_PRO_PRESS_BACK, 500L);
                     mProHandler.sendEmptyMessageDelayed(MSG_PRO_PRESS_BACK, 1500L);
@@ -455,11 +469,13 @@ public class GreenPowerService extends AccessibilityService {
             long milli2 = SystemClock.uptimeMillis();
             in.sendPointerSync(MotionEvent.obtain(milli2, milli2, MotionEvent.ACTION_UP, midX, midY, 0));
 
-            SystemClock.sleep(1000L);
+            // 点击事件
+            SystemClock.sleep(500L);
             long milli3 = SystemClock.uptimeMillis();
             in.sendPointerSync(MotionEvent.obtain(milli3, milli3, MotionEvent.ACTION_DOWN, point[0], point[1], 0));
             in.sendPointerSync(MotionEvent.obtain(milli3 + 10L, milli3 + 10L, MotionEvent.ACTION_UP, point[0], point[1], 0));
 
+            // 收起通知栏
             mProHandler.sendEmptyMessageDelayed(MSG_PRO_PRESS_BACK, 500L);
         }
     }
@@ -468,7 +484,7 @@ public class GreenPowerService extends AccessibilityService {
     /**
      * 处理UI线程任务
      */
-    class UiHandler extends Handler {
+    final class UiHandler extends Handler {
 
         public UiHandler(Looper mainLooper) {
             super(mainLooper);
@@ -485,27 +501,31 @@ public class GreenPowerService extends AccessibilityService {
                         Log.d(TAG, "handleMessage:启动支付宝****************");
                         Util.startAliPay(getApplicationContext());
                         mUiHandler.sendEmptyMessageDelayed(MSG_UI_FIND_ENT_FOREST, 2000L);
-//                        enableAntForest = true;
                     } else {
                         Log.d(TAG, "handleMessage:网络不可用,使能网络监听");
                         enableReceiveNetwork = true;
-                        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(GreenPowerService.this);
-                        boolean wifi = sp.getBoolean(Constant.SP_KEY_SWITCH_WIFI, false);
+                        boolean wifi = mSp.getBoolean(Constant.SP_KEY_SWITCH_WIFI, false);
                         if (wifi) {
+                            // 通过代码打开wifi,不需要弹窗确认是否允许打开
 //                            enableConfirmNetWork = true;
 //                            Util.toggleWifi(GreenPowerService.this, true);
+
+                            // 通过下拉通知栏打开wifi
                             //  先判断wifi是否已经打开,没打开则去打开开关
                             boolean wifiSwitchOn = Util.isWifiSwitchOn(getApplicationContext());
                             if (!wifiSwitchOn) {
                                 mProHandler.sendEmptyMessageDelayed(MSG_PRO_TOGGLE_WIFI, 1000L);
                             }
                         }
-                        boolean mobile = sp.getBoolean(Constant.SP_KEY_SWITCH_MOBILE_NETWORK, false);
+                        boolean mobile = mSp.getBoolean(Constant.SP_KEY_SWITCH_MOBILE_NETWORK, false);
                         if (mobile) {
+                            // 通过代码打开网络开关,需要弹窗确认是否允许打开
 //                            enableConfirmNetWork = true;
 //                            Util.toggleMobileNetwork(getApplicationContext(), true);
+
+                            // 通过下拉通知栏打开网络开关,不需要弹窗
                             boolean networkSwitchOn = Util.isMobileNetworkSwitchOn(getApplicationContext());
-                            if (!netWorkAvailable) {
+                            if (!networkSwitchOn) {
                                 mProHandler.sendEmptyMessageDelayed(MSG_PRO_TOGGLE_MOBILE_NETWORK, 1000L);
                             }
                         }
@@ -515,34 +535,47 @@ public class GreenPowerService extends AccessibilityService {
                     AccessibilityNodeInfo inActiveWindow = getRootInActiveWindow();
                     if (inActiveWindow != null) {
                         enableInputPwd = true;
-                        enableEach = true;
                         eachEdittext(inActiveWindow, WIDGET_NAME_EDITTEXT);
                     } else {
-                        Log.d(TAG, "onAccessibilityEvent:rootInActiveWindow == null--------");
+                        Log.d(TAG, "MSG_UI_FIND_EDITTEXT>>:rootInActiveWindow == null--------");
                     }
                     break;
                 case MSG_UI_FIND_ENT_FOREST:
                     AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
                     if (rootInActiveWindow != null) {
                         enableAntForest = true;
-                        enableEach = true;
                         eachAntForest(rootInActiveWindow, TEXT_ANT_FOREST);
+                        enableAntForest = false;
                     } else {
-                        Log.d(TAG, "onAccessibilityEvent:rootInActiveWindow == null--------");
+                        Log.d(TAG, "MSG_UI_FIND_ENT_FOREST>>:rootInActiveWindow == null--------");
                     }
                     break;
                 case MSG_UI_JOB_FINISH:
-//                    enableAntForest = false;
+                    enableAntForest = false;
                     enableBackupPassword = false;
                     enableEach = false;
                     enableInputPwd = false;
                     enableReady = false;
                     enableConfirmNetWork = false;
                     enableReceiveNetwork = false;
-//                    ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-//                    activityManager.killBackgroundProcesses(Constant.PKG_ALIPAY);
+                    boolean off = mSp.getBoolean(Constant.SP_KEY_TURN_OFF_NETWORK, false);
+                    long gas = 0L;
+                    //操作一项需 1200ms
+                    if (off) {
+                        if (Util.isWifiSwitchOn(getApplicationContext())) {
+                            mProHandler.sendEmptyMessage(MSG_PRO_TOGGLE_WIFI);
+                            gas += 1200L;
+                        }
+
+                        if (Util.isMobileNetworkSwitchOn(getApplicationContext())) {
+                            mProHandler.sendEmptyMessage(MSG_PRO_TOGGLE_MOBILE_NETWORK);
+                            gas += 1200L;
+                        }
+                    }
+                    // 杀死支付宝进程
+//                    killAliBackground();
                     unregisterNetworkReceiver();
-                    mProHandler.sendEmptyMessageDelayed(MSG_PRO_PRESS_POWER, 1000L);
+                    mProHandler.sendEmptyMessageDelayed(MSG_PRO_PRESS_POWER, 1500L + gas);
                     break;
                 default:
                     break;
@@ -550,8 +583,12 @@ public class GreenPowerService extends AccessibilityService {
         }
     }
 
+    private void killAliBackground() {
+        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        activityManager.killBackgroundProcesses(Constant.PKG_ALIPAY);
+    }
 
-    private class NetWorkReceiver extends BroadcastReceiver {
+    private final class NetWorkReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -590,7 +627,7 @@ public class GreenPowerService extends AccessibilityService {
     }
 
 
-    private class ClockReceiver extends BroadcastReceiver {
+    private final class ClockReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {

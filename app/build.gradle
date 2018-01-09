@@ -16,12 +16,15 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
-    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'eu.chainfire:libsuperuser:1.0.0.201704021214'
     implementation "com.android.support:recyclerview-v7:${rootProject.ext.supportLibVersion}"
 }
